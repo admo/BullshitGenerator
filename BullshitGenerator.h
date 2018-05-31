@@ -7,40 +7,33 @@
 #include <istream>
 #include <random>
 
-class BullshitGenerator {
-private:
-    using Word = std::string;
-    using Words = std::vector<std::string>;
-    using WordsNumber = Words::size_type;
-    using ConsequentWordsMap = std::map<std::string, Words>;
+namespace bullshit {
+using Word = std::string;
+using Words = std::vector<Word>;
+using WordsNumber = Words::size_type;
+using ConsequentWordsMap = std::map<Word, Words>;
 
-public:
-    explicit BullshitGenerator(std::istream& input);
+template <typename InputIterator>
+ConsequentWordsMap read(InputIterator currentIt, InputIterator lastIt) {
+    ConsequentWordsMap consequentWordsMap;
+    const Word sentinel{};
 
-    template <typename InputIterator>
-    BullshitGenerator(InputIterator currentIt, InputIterator lastIt) {
-        Word word{sentinel};
+    if (currentIt == lastIt)
+        return consequentWordsMap;
 
-        for(;currentIt != lastIt; word = *currentIt++)
-            consequentWordsMap[word].emplace_back(*currentIt);
-
-        consequentWordsMap.erase(sentinel);
-        consequentWordsMap.try_emplace(*currentIt, Words(1, sentinel));
+    for (Word const *firstWord{&sentinel}, *secondWord{&*currentIt}; currentIt != lastIt; ++currentIt) {
+        auto& words = consequentWordsMap[*firstWord];
+        words.push_back(*secondWord);
+        firstWord = &words.back();
     }
 
-    BullshitGenerator(const BullshitGenerator&) = default;
-    BullshitGenerator(BullshitGenerator&&) noexcept = default;
-    BullshitGenerator &operator=(const BullshitGenerator&) = default;
-    BullshitGenerator &operator=(BullshitGenerator&&) noexcept = default;
+    consequentWordsMap.erase(Word{});
+    consequentWordsMap.try_emplace(*currentIt, Words(1, Word{}));
 
-    void generate(std::ostream& output, std::string word, std::size_t length) const;
+    return consequentWordsMap;
+}
 
-private:
-    Word getRandomConsequentWord(const Word& word) const;
-    WordsNumber getRandomWordIndex(WordsNumber numberOfWords) const;
-    static bool isSentinel(const Word& word);
+ConsequentWordsMap read(std::istream &input);
 
-    mutable std::default_random_engine randomEngine{std::random_device().operator()()};
-    const Word sentinel{};
-    ConsequentWordsMap consequentWordsMap;
-};
+void generate(std::ostream &output, ConsequentWordsMap const &consequentWordsMap, Word const &word, std::size_t length);
+}

@@ -55,7 +55,9 @@ int main(int argc, char* argv[]) try {
     std::istream* inputStream = vm.count("input") ? &inputFile : &std::cin;
     std::ostream* outputStream = vm.count("output") ? &outputFile : & std::cout;
 
-    BullshitGenerator{*inputStream}.generate(*outputStream, word, count);
+    const auto consequentWordsMap = bullshit::read(*inputStream);
+
+    bullshit::generate(*outputStream, consequentWordsMap, word, count);
 
     return 0;
 }

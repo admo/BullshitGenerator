@@ -1,28 +1,34 @@
 #include "BullshitGenerator.h"
 
-BullshitGenerator::BullshitGenerator(std::istream &input)
-        : BullshitGenerator{std::istream_iterator<Word>{input}, std::istream_iterator<Word>{}} {}
+namespace bullshit {
+namespace {
 
-void BullshitGenerator::generate(std::ostream &output, std::string word, std::size_t length) const  {
-    if (0 == consequentWordsMap.count(word))
-        throw std::invalid_argument(word + " not found in input data");
+static std::default_random_engine randomEngine{std::random_device().operator()()};
 
-    for (auto i = decltype(length){0}; i < length && !isSentinel(word); ++i, word = getRandomConsequentWord(word))
-        output << word << ' ';
+bool isSentinel(Word const* word) {
+    return word->empty();
+}
+
+WordsNumber getRandomWordIndex(WordsNumber numberOfWords) {
+    return std::uniform_int_distribution<WordsNumber>{0, numberOfWords-1}(randomEngine);
+}
+
+Word const* getRandomConsequentWord(const ConsequentWordsMap& consequentWordsMap, Word const* word) {
+    auto const & consequentWords = consequentWordsMap.at(*word);
+    return consequentWords.data() + getRandomWordIndex(consequentWords.size());
+}
+}
+
+void generate(std::ostream &output, const ConsequentWordsMap &consequentWordsMap, Word const &firstWord, std::size_t length) {
+    Word const *currentWord = &firstWord;
+
+    for (auto i = decltype(length){0}; i < length && !isSentinel(currentWord); ++i, currentWord = getRandomConsequentWord(consequentWordsMap, currentWord))
+        output << *currentWord << ' ';
 
     output << '\n';
 }
 
-BullshitGenerator::Word BullshitGenerator::getRandomConsequentWord(const Word &word) const {
-    const auto& consequentWords = consequentWordsMap.at(word);
-    return consequentWords[getRandomWordIndex(consequentWords.size())];
+ConsequentWordsMap read(std::istream &input) {
+    return bullshit::read(std::istream_iterator<Word>{input}, std::istream_iterator<Word>{});
 }
-
-BullshitGenerator::WordsNumber BullshitGenerator::getRandomWordIndex(WordsNumber numberOfWords) const {
-    return std::uniform_int_distribution<WordsNumber >{0, numberOfWords-1}(randomEngine);
 }
-
-bool BullshitGenerator::isSentinel(const BullshitGenerator::Word &word) {
-    return word.empty();
-}
-
